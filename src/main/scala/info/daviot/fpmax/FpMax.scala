@@ -5,7 +5,14 @@ import scala.util.{Random, Try}
 
 object FpMax extends App {
 
+  implicit val consoleIO: Console[IO] = new Console[IO] {
+    override def printString(s: String): IO[Unit] = IO(() => println(s))
+    override def readString: IO[String]           = IO(() => readLine())
+  }
 
+  implicit val randomIO: Random[IO] = new Random[IO] {
+    override def nextInt(max: Int): IO[Int] = IO(() => util.Random.nextInt(max))
+  }
 
   val main: IO[Unit] = for {
     _    <- printString("What is your name?")
@@ -56,29 +63,24 @@ object FpMax extends App {
     readString.map(s => Try(s.toInt).toOption)
 
   trait Console[F[_]] {
-    def printStringC(s: String): F[Unit]
-    def readStringC(): F[String]
+    def printString(s: String): F[Unit]
+    def readString(): F[String]
   }
   object Console {
     def apply[F[_]](implicit c: Console[F]): Console[F] = c
   }
 
-  def printString2[F[_]: Console](s: String): F[Unit] = Console[F].printStringC(s)
-  def readString2[F[_]: Console](): F[String]         = Console[F].readStringC()
-
-  implicit val consoleIO: Console[IO] =new Console[IO] {
-    override def printStringC(s: String): IO[Unit] = IO(() => println(s))
-    override def readStringC(): IO[String]         = IO(() => readLine())
-  }
+  def printString[F[_]: Console](s: String): F[Unit] = Console[F].printString(s)
+  def readString[F[_]: Console](): F[String]         = Console[F].readString()
 
   trait Random[F[_]] {
-    def nextIntR(max: Int): F[Int]
+    def nextInt(max: Int): F[Int]
   }
   object Random {
     def apply[F[_]](implicit r: Random[F]): Random[F] = r
   }
 
-  def nextIntR[F[_]: Random](max: Int): F[Int] = Random[F].nextIntR(max)
+  def nextIntR[F[_]: Random](max: Int): F[Int] = Random[F].nextInt(max)
 }
 
 object stdlib {

@@ -33,19 +33,12 @@ object FpMax extends App {
   def readString: IO[String]           = IO(() => readLine())
   def nextInt(max: Int): IO[Int]       = IO(() => Random.nextInt(max))
 
-  //TODO : simplify mutual recursion here
-
-  def inputBoolean: IO[Boolean] =
-    for {
-      bool <- inputBooleanOpt
-      b    <- bool.fold(readBoolean)(IO.point(_))
-    } yield b
-
-  private def readBoolean: IO[Boolean] =
+  private def inputBoolean: IO[Boolean] =
     for {
       _ <- printString("Please enter y or n")
-      b <- inputBoolean
-    } yield b
+      maybeBool <- inputBooleanOpt
+      bool <- maybeBool.fold(inputBoolean)(IO.point(_))
+    } yield bool
 
   private def inputBooleanOpt: IO[Option[Boolean]] =
     readString.map(parseBoolean)

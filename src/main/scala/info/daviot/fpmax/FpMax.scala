@@ -4,54 +4,53 @@ import info.daviot.fpmax.stdlib.IO
 import scala.util.{Random, Try}
 
 object FpMax extends App {
-  println("What is your name?")
 
-  val name = readLine()
+  val main: IO[Unit] = for {
+    _    <- printString("What is your name?")
+    name <- readString
+    _    <- printString("Hello, " + name + ", welcome to the game!")
+    _    <- gameLoop(name)
+  } yield ()
 
-  println("Hello, " + name + ", welcome to the game!")
+  main.unsafeRun()
 
-  var exec = true
-
-  while (exec) {
-    val num = scala.util.Random.nextInt(5) + 1
-
-    println("Dear " + name + ", please guess a number from 1 to 5:")
-
-    inputNumber() match {
-      case None        => println("You failed to enter a number, " + name)
-      case Some(`num`) => println("You guessed right, " + name + "!")
-      case _           => println("You guessed wrong, " + name + "! The number was: " + num)
-    }
-
-    println("Do you want to continue, " + name + "?")
-
-    exec = inputBoolean
-  }
+  private def gameLoop(name: String): IO[Unit] =
+    for {
+      num   <- nextInt(max = 5).map(_ + 1)
+      _     <- printString("Dear " + name + ", please guess a number from 1 to 5:")
+      entry <- inputNumber
+      _ <- entry match {
+        case None        => printString("You failed to enter a number, " + name)
+        case Some(`num`) => printString("You guessed right, " + name + "!")
+        case _           => printString("You guessed wrong, " + name + "! The number was: " + num)
+      }
+      _              <- printString("Do you want to continue, " + name + "?")
+      wantToContinue <- inputBoolean
+      _              <- if (wantToContinue) gameLoop(name) else IO.point(())
+    } yield ()
 
   def printString(s: String): IO[Unit] = IO(() => println(s))
   def readString: IO[String]           = IO(() => readLine())
   def nextInt(max: Int): IO[Int]       = IO(() => Random.nextInt(max))
 
-  def inputBoolean: Boolean = {
-    var bool = inputBooleanOpt()
-    while (bool.isEmpty) {
-      println("Please enter y or n")
-      bool = inputBooleanOpt()
-    }
-    bool.get
-  }
+  def inputBoolean: IO[Boolean] =
+    for {
+      bool <- inputBooleanOpt
+      b <- if (bool.nonEmpty) IO.point(bool.get)
+      else
+        printString("Please enter y or n").flatMap { _ => inputBoolean
+        }
+    } yield b
 
-  private def inputBooleanOpt(): Option[Boolean] = {
-    readLine().toLowerCase match {
+  private def inputBooleanOpt: IO[Option[Boolean]] =
+    readString.map(_.toLowerCase match {
       case "y" => Some(true)
       case "n" => Some(false)
       case _   => None
-    }
-  }
-  private def inputNumber(): Option[Int] =
-    Try {
-      readLine().toInt
-    }.toOption
+    })
+
+  private def inputNumber: IO[Option[Int]] =
+    readString.map(s => Try(s.toInt).toOption)
 }
 
 object stdlib {

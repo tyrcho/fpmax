@@ -5,6 +5,8 @@ import scala.util.{Random, Try}
 
 object FpMax extends App {
 
+
+
   val main: IO[Unit] = for {
     _    <- printString("What is your name?")
     name <- readString
@@ -61,8 +63,22 @@ object FpMax extends App {
     def apply[F[_]](implicit c: Console[F]): Console[F] = c
   }
 
-  def printStringc[F[_]: Console](s: String): F[Unit] = Console[F].printStringC(s)
-  def readStringC[F[_]: Console](): F[String]         = Console[F].readStringC()
+  def printString2[F[_]: Console](s: String): F[Unit] = Console[F].printStringC(s)
+  def readString2[F[_]: Console](): F[String]         = Console[F].readStringC()
+
+  implicit val consoleIO: Console[IO] =new Console[IO] {
+    override def printStringC(s: String): IO[Unit] = IO(() => println(s))
+    override def readStringC(): IO[String]         = IO(() => readLine())
+  }
+
+  trait Random[F[_]] {
+    def nextIntR(max: Int): F[Int]
+  }
+  object Random {
+    def apply[F[_]](implicit r: Random[F]): Random[F] = r
+  }
+
+  def nextIntR[F[_]: Random](max: Int): F[Int] = Random[F].nextIntR(max)
 }
 
 object stdlib {

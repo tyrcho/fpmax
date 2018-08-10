@@ -23,9 +23,23 @@ object FpMax extends App {
 
     println("Do you want to continue, " + name + "?")
 
-    readLine() match {
-      case "y" => exec = true
-      case "n" => exec = false
+    exec = inputBoolean
+  }
+
+  def inputBoolean: Boolean = {
+    var bool = inputBooleanOpt()
+    while (bool.isEmpty) {
+      println("Please enter y or n")
+      bool = inputBooleanOpt()
+    }
+    bool.get
+  }
+
+  private def inputBooleanOpt(): Option[Boolean] = {
+    readLine().toLowerCase match {
+      case "y" => Some(true)
+      case "n" => Some(false)
+      case _   => None
     }
   }
   private def inputNumber(): Option[Int] =

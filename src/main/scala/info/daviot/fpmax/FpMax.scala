@@ -1,5 +1,7 @@
 package info.daviot.fpmax
-import scala.util.Try
+import info.daviot.fpmax.stdlib.IO
+
+import scala.util.{Random, Try}
 
 object FpMax extends App {
   println("What is your name?")
@@ -26,6 +28,10 @@ object FpMax extends App {
     exec = inputBoolean
   }
 
+  def printString(s: String): IO[Unit] = IO(() => println(s))
+  def readString: IO[String]           = IO(() => readLine())
+  def nextInt(max: Int): IO[Int]       = IO(() => Random.nextInt(max))
+
   def inputBoolean: Boolean = {
     var bool = inputBooleanOpt()
     while (bool.isEmpty) {
@@ -46,4 +52,14 @@ object FpMax extends App {
     Try {
       readLine().toInt
     }.toOption
+}
+
+object stdlib {
+  case class IO[A](unsafeRun: () => A) { self =>
+    def map[B](f: A => B): IO[B]         = IO(() => f(self.unsafeRun()))
+    def flatMap[B](f: A => IO[B]): IO[B] = IO(() => f(self.unsafeRun()).unsafeRun())
+  }
+  object IO {
+    def point[A](a: => A) = IO(() => a)
+  }
 }

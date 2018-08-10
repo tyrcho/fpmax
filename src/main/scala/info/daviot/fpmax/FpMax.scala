@@ -7,8 +7,8 @@ object FpMax extends App {
   implicit val randomIO: Random[IO] = max => IO(() => util.Random.nextInt(max))
 
   implicit val consoleIO: Console[IO] = new Console[IO] {
-    override def ps(s: String): IO[Unit] = IO(() => println(s))
-    override def rs: IO[String]          = IO(() => readLine())
+    override def printString(s: String): IO[Unit] = IO(() => println(s))
+    override def readString: IO[String]          = IO(() => readLine())
   }
 
   implicit val programIO: Program[IO] = new Program[IO] {

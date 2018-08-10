@@ -25,15 +25,15 @@ object StdLib {
   def point[F[_], A](a: => A)(implicit p: Program[F]): F[A] = p.finish(a)
 
   trait Console[F[_]] {
-    def ps(s: String): F[Unit]
-    def rs: F[String]
+    def printString(s: String): F[Unit]
+    def readString: F[String]
   }
   object Console {
     def apply[F[_]](implicit c: Console[F]): Console[F] = c
   }
 
-  def printString[F[_]: Console](s: String): F[Unit] = Console[F].ps(s)
-  def readString[F[_]: Console]: F[String]           = Console[F].rs
+  def printString[F[_]: Console](s: String): F[Unit] = Console[F].printString(s)
+  def readString[F[_]: Console]: F[String]           = Console[F].readString
 
   trait Random[F[_]] {
     def nextInt(max: Int): F[Int]

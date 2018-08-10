@@ -53,6 +53,16 @@ object FpMax extends App {
   private def inputNumber: IO[Option[Int]] =
     readString.map(s => Try(s.toInt).toOption)
 
+  trait Console[F[_]] {
+    def printStringC(s: String): F[Unit]
+    def readStringC(): F[String]
+  }
+  object Console {
+    def apply[F[_]](implicit c: Console[F]): Console[F] = c
+  }
+
+  def printStringc[F[_]: Console](s: String): F[Unit] = Console[F].printStringC(s)
+  def readStringC[F[_]: Console](): F[String]         = Console[F].readStringC()
 }
 
 object stdlib {
@@ -67,4 +77,19 @@ object stdlib {
   object IO {
     def point[A](a: => A) = IO(() => a)
   }
+
+  //a Monad
+  trait Program[F[_]] {
+    def finish[A](a: => A): F[A]
+    def chain[A, B](fa: F[A], f: A => F[B]): F[B]
+    def map[A, B](fa: F[A], f: A => B): F[B]
+  }
+  object Program {
+    def apply[F[_]](implicit p: Program[F]): Program[F] = p
+  }
+  implicit class ProgramSyntax[F[_], A](fa: F[A]) {
+    def map[B](f: A => B)(implicit p: Program[F]): F[B]        = p.map(fa, f)
+    def flatMap[B](f: A => F[B])(implicit p: Program[F]): F[B] = p.chain(fa, f)
+  }
+  def point[F[_], A](a: => A)(implicit p: Program[F]): F[A] = p.finish(a)
 }

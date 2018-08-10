@@ -24,22 +24,29 @@ object StdLib {
   }
   def point[F[_], A](a: => A)(implicit p: Program[F]): F[A] = p.finish(a)
 
-  trait Consumer[F[_], S] {
-    def consume(s: S): F[Unit]
+  trait Consumer[F[_]] {
+    def consume(s: String): F[Unit]
   }
 
-  trait Provider[F[_], S] {
-    def provide: F[S]
+  trait Provider[F[_]] {
+    def provide: F[String]
   }
 
-  trait Console[F[_]] extends Consumer[F, String] with Provider[F, String]
+  trait Console[F[_]] extends Consumer[F] with Provider[F]
 
   object Console {
     def apply[F[_]](implicit c: Console[F]): Console[F] = c
   }
 
-  def printString[F[_]: Console](s: String): F[Unit] = Console[F].consume(s)
-  def readString[F[_]: Console]: F[String]           = Console[F].provide
+  object Consumer {
+    def apply[F[_]](implicit c: Consumer[F]): Consumer[F] = c
+  }
+  object Provider {
+    def apply[F[_]](implicit c: Provider[F]): Provider[F] = c
+  }
+
+  def printString[F[_]: Consumer](s: String): F[Unit] = Consumer[F].consume(s)
+  def readString[F[_]: Provider]: F[String]           = Provider[F].provide
 
   trait Random[F[_]] {
     def nextInt(max: Int): F[Int]

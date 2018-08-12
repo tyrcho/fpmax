@@ -43,7 +43,7 @@ object MyApp {
       _              <- if (wantToContinue) gameLoop[F](name) else point(())
     } yield ()
 
-  private def handleAnswer[F[_]: Program: Consumer](name: String, hidden: Int, entry: Option[Int]): F[Unit] = {
+  private def handleAnswer[F[_]: Consumer](name: String, hidden: Int, entry: Option[Int]): F[Unit] = {
     entry match {
       case None           => printString("You failed to enter a number, " + name)
       case Some(`hidden`) => printString("You guessed right, " + name + "!")

@@ -20,7 +20,7 @@ class FpMaxTests extends FlatSpec with Matchers {
 
   val mainTestIO: TestIO[Unit] = MyApp.main[TestIO]
 
-  it should "start with a ok test" in {
+  it should "answer when guessed wrong" in {
     val testData = TestData(inputs = List("Michel", "1", "N"), numbers = List(1))
     val result   = mainTestIO.eval(testData)
     result shouldBe TestData(

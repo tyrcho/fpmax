@@ -28,25 +28,20 @@ object StdLib {
     def consume(s: String): F[Unit]
   }
 
+  object Consumer {
+    def apply[F[_]](implicit c: Consumer[F]): Consumer[F] = c
+  }
+  def printString[F[_]: Consumer](s: String): F[Unit] = Consumer[F].consume(s)
+
   trait Provider[F[_]] {
     def provide: F[String]
   }
 
-  trait Console[F[_]] extends Consumer[F] with Provider[F]
-
-  object Console {
-    def apply[F[_]](implicit c: Console[F]): Console[F] = c
-  }
-
-  object Consumer {
-    def apply[F[_]](implicit c: Consumer[F]): Consumer[F] = c
-  }
   object Provider {
     def apply[F[_]](implicit c: Provider[F]): Provider[F] = c
   }
 
-  def printString[F[_]: Consumer](s: String): F[Unit] = Consumer[F].consume(s)
-  def readString[F[_]: Provider]: F[String]           = Provider[F].provide
+  def readString[F[_]: Provider]: F[String] = Provider[F].provide
 
   trait Random[F[_]] {
     def nextInt(max: Int): F[Int]

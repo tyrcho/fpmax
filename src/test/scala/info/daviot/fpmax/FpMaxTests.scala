@@ -1,12 +1,13 @@
 package info.daviot.fpmax
 
+import info.daviot.fpmax.OutMessage._
 import info.daviot.fpmax.StdLib.{Program, Provider, Random, StringConsumer}
 import org.scalatest._
 
 class FpMaxTests extends FlatSpec with Matchers {
   implicit val randomTestIO: Random[TestIO] = _ => TestIO(_.takeNumber)
 
-  implicit val consumerTestIO: StringConsumer[TestIO] = s => TestIO(t => (t.appendOutput(s), ()))
+  implicit val consumerTestIO: MessageConsumer[TestIO] = s => TestIO(t => (t.appendOutput(s), ()))
 
   implicit val providerTestIO: Provider[TestIO] = new Provider[TestIO] {
     override def provide: TestIO[String] = TestIO(_.takeInput)
@@ -21,27 +22,26 @@ class FpMaxTests extends FlatSpec with Matchers {
   val mainTestIO: TestIO[Unit] = MyApp.main[TestIO]
 
   it should "answer when guessed wrong" in {
-    val testData = TestData(inputs = List("Michel", "1", "N"), numbers = List(1))
+    val name     = "Michel"
+    val testData = TestData(inputs = List(name, "1", "N"), numbers = List(1))
     val result   = mainTestIO.eval(testData)
-    result shouldBe TestData(
-      Nil,
-      Nil,
-      List(
-        "Please enter y or n",
-        "Do you want to continue, Michel?",
-        "You guessed wrong, Michel! The number was: 2",
-        "Dear Michel, please guess a number from 1 to 5:",
-        "Hello, Michel, welcome to the game!",
-        "What is your name?"
-      )
-    )
-
+    result match {
+      case TestData(Nil, Nil, messages) =>
+        messages.reverse should contain inOrder
+          (
+            WhatIsYourName,
+            WelcomeToGame(name),
+            PleaseGuess(name),
+            YouGuessedWrong(name, 2),
+            DoYouWantToContinue(name)
+        )
+    }
   }
 
 }
 
-case class TestData(inputs: List[String], numbers: List[Int], outputs: List[String] = Nil) {
-  def appendOutput(s: String): TestData = copy(outputs = s :: outputs)
+case class TestData(inputs: List[String], numbers: List[Int], outputs: List[OutMessage] = Nil) {
+  def appendOutput(s: OutMessage): TestData = copy(outputs = s :: outputs)
 
   def takeInput: (TestData, String) = (copy(inputs = inputs.tail), inputs.head)
 

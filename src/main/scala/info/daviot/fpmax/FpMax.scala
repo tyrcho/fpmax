@@ -1,12 +1,13 @@
 package info.daviot.fpmax
 
-import scala.util.Try
+import info.daviot.fpmax.OutMessage._
 
+import scala.util.Try
 import info.daviot.fpmax.StdLib._
 object FpMax extends App {
   implicit val randomIO: Random[IO] = max => IO(() => util.Random.nextInt(max))
 
-  implicit val consumeIO: StringConsumer[IO] = s => IO(() => println(s))
+  implicit val consumeIO: MessageConsumer[IO] = s => IO(() => printMessage(s))
 
   implicit val provideIO: Provider[IO] = new Provider[IO] {
     override def provide: IO[String] = IO(() => readLine())
@@ -23,39 +24,39 @@ object FpMax extends App {
 
 object MyApp {
 
-  def main[F[_]: Program: Random: Provider: StringConsumer]: F[Unit] =
+  def main[F[_]: Program: Random: Provider: MessageConsumer]: F[Unit] =
     for {
-      _    <- printString("What is your name?")
+      _    <- printMessage(WhatIsYourName)
       name <- readString
-      _    <- printString("Hello, " + name + ", welcome to the game!")
+      _    <- printMessage(WelcomeToGame(name))
       _    <- gameLoop(name)
     } yield ()
 
-  private def gameLoop[F[_]: Program: Random: Provider: StringConsumer](name: String): F[Unit] =
+  private def gameLoop[F[_]: Program: Random: Provider: MessageConsumer](name: String): F[Unit] =
     for {
       randomNumber <- nextInt(max = 5)
       hiddenNumber = randomNumber + 1
-      _              <- printString("Dear " + name + ", please guess a number from 1 to 5:")
+      _              <- printMessage(PleaseGuess(name))
       entry          <- inputNumber
       _              <- handleAnswer(name, hiddenNumber, entry)
-      _              <- printString("Do you want to continue, " + name + "?")
-      wantToContinue <- inputBoolean
+      _              <- printMessage(DoYouWantToContinue(name))
+      wantToContinue <- inputBoolean(name)
       _              <- if (wantToContinue) gameLoop[F](name) else point(())
     } yield ()
 
-  private def handleAnswer[F[_]: StringConsumer](name: String, hidden: Int, entry: Option[Int]): F[Unit] = {
+  private def handleAnswer[F[_]: MessageConsumer](name: String, hidden: Int, entry: Option[Int]): F[Unit] = {
     entry match {
-      case None           => printString("You failed to enter a number, " + name)
-      case Some(`hidden`) => printString("You guessed right, " + name + "!")
-      case _              => printString("You guessed wrong, " + name + "! The number was: " + hidden)
+      case None           => printMessage(ThatIsNotValid(name))
+      case Some(`hidden`) => printMessage(YouGuessedRight(name))
+      case _              => printMessage(YouGuessedWrong(name, hidden))
     }
   }
 
-  private def inputBoolean[F[_]: Program: Provider: StringConsumer]: F[Boolean] =
+  private def inputBoolean[F[_]: Program: Provider: MessageConsumer](name: String): F[Boolean] =
     for {
-      _         <- printString("Please enter y or n")
+      _         <- printMessage(ThatIsNotValid(name))
       maybeBool <- inputBooleanOpt
-      bool      <- maybeBool.fold(inputBoolean[F])(point(_))
+      bool      <- maybeBool.fold(inputBoolean[F](name))(point(_))
     } yield bool
 
   private def inputBooleanOpt[F[_]: Program: Provider]: F[Option[Boolean]] =

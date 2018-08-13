@@ -31,7 +31,24 @@ object StdLib {
   object Consumer {
     def apply[F[_]](implicit c: Consumer[F]): Consumer[F] = c
   }
-  def printString[F[_]: Consumer](s: String): F[Unit] = Consumer[F].consume(s)
+
+  trait Consumer2[F[_], T] {
+    def consume(s: T): F[Unit]
+  }
+
+  object Consumer2 {
+    def apply[F[_], T](implicit c: Consumer2[F, T]): Consumer2[F, T] = c
+  }
+  def print[T, F[_]](s: T)(implicit c: Consumer2[F, T]): F[Unit] = {
+    Consumer2[F, T].consume(s)
+  }
+
+  type StringConsumer[F[_]] = Consumer2[F, String]
+
+  object StringConsumer {
+    def apply[F[_]](implicit c: StringConsumer[F]): StringConsumer[F] = c
+  }
+  def printString[F[_]: StringConsumer](s: String): F[Unit] = StringConsumer[F].consume(s)
 
   trait Provider[F[_]] {
     def provide: F[String]

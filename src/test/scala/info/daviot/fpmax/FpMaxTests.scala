@@ -1,12 +1,12 @@
 package info.daviot.fpmax
 
-import info.daviot.fpmax.StdLib.{Consumer, Program, Provider, Random}
+import info.daviot.fpmax.StdLib.{Program, Provider, Random, StringConsumer}
 import org.scalatest._
 
 class FpMaxTests extends FlatSpec with Matchers {
   implicit val randomTestIO: Random[TestIO] = _ => TestIO(_.takeNumber)
 
-  implicit val consumerTestIO: Consumer[TestIO] = s => TestIO(t => (t.appendOutput(s), ()))
+  implicit val consumerTestIO: StringConsumer[TestIO] = s => TestIO(t => (t.appendOutput(s), ()))
 
   implicit val providerTestIO: Provider[TestIO] = new Provider[TestIO] {
     override def provide: TestIO[String] = TestIO(_.takeInput)

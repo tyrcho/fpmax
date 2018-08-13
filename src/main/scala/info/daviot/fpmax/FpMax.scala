@@ -6,7 +6,7 @@ import info.daviot.fpmax.StdLib._
 object FpMax extends App {
   implicit val randomIO: Random[IO] = max => IO(() => util.Random.nextInt(max))
 
-  implicit val consumeIO: Consumer[IO] = s => IO(() => println(s))
+  implicit val consumeIO: StringConsumer[IO] = s => IO(() => println(s))
 
   implicit val provideIO: Provider[IO] = new Provider[IO] {
     override def provide: IO[String] = IO(() => readLine())
@@ -23,7 +23,7 @@ object FpMax extends App {
 
 object MyApp {
 
-  def main[F[_]: Program: Random: Provider: Consumer]: F[Unit] =
+  def main[F[_]: Program: Random: Provider: StringConsumer]: F[Unit] =
     for {
       _    <- printString("What is your name?")
       name <- readString
@@ -31,7 +31,7 @@ object MyApp {
       _    <- gameLoop(name)
     } yield ()
 
-  private def gameLoop[F[_]: Program: Random: Provider: Consumer](name: String): F[Unit] =
+  private def gameLoop[F[_]: Program: Random: Provider: StringConsumer](name: String): F[Unit] =
     for {
       randomNumber <- nextInt(max = 5)
       hiddenNumber = randomNumber + 1
@@ -43,7 +43,7 @@ object MyApp {
       _              <- if (wantToContinue) gameLoop[F](name) else point(())
     } yield ()
 
-  private def handleAnswer[F[_]: Consumer](name: String, hidden: Int, entry: Option[Int]): F[Unit] = {
+  private def handleAnswer[F[_]: StringConsumer](name: String, hidden: Int, entry: Option[Int]): F[Unit] = {
     entry match {
       case None           => printString("You failed to enter a number, " + name)
       case Some(`hidden`) => printString("You guessed right, " + name + "!")
@@ -51,7 +51,7 @@ object MyApp {
     }
   }
 
-  private def inputBoolean[F[_]: Program: Provider: Consumer]: F[Boolean] =
+  private def inputBoolean[F[_]: Program: Provider: StringConsumer]: F[Boolean] =
     for {
       _         <- printString("Please enter y or n")
       maybeBool <- inputBooleanOpt

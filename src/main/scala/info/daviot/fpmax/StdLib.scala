@@ -24,26 +24,18 @@ object StdLib {
   }
   def point[F[_], A](a: => A)(implicit p: Program[F]): F[A] = p.finish(a)
 
-  trait Consumer[F[_]] {
-    def consume(s: String): F[Unit]
-  }
-
-  object Consumer {
-    def apply[F[_]](implicit c: Consumer[F]): Consumer[F] = c
-  }
-
-  trait Consumer2[F[_], T] {
+  trait Consumer[F[_], T] {
     def consume(s: T): F[Unit]
   }
 
-  object Consumer2 {
-    def apply[F[_], T](implicit c: Consumer2[F, T]): Consumer2[F, T] = c
+  object Consumer {
+    def apply[F[_], T](implicit c: Consumer[F, T]): Consumer[F, T] = c
   }
-  def print[T, F[_]](s: T)(implicit c: Consumer2[F, T]): F[Unit] = {
-    Consumer2[F, T].consume(s)
+  def print[T, F[_]](s: T)(implicit c: Consumer[F, T]): F[Unit] = {
+    Consumer[F, T].consume(s)
   }
 
-  type StringConsumer[F[_]] = Consumer2[F, String]
+  type StringConsumer[F[_]] = Consumer[F, String]
 
   object StringConsumer {
     def apply[F[_]](implicit c: StringConsumer[F]): StringConsumer[F] = c

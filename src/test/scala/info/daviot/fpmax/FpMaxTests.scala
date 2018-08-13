@@ -27,14 +27,32 @@ class FpMaxTests extends FlatSpec with Matchers {
     val result   = mainTestIO.eval(testData)
     result match {
       case TestData(Nil, Nil, messages) =>
-        messages.reverse should contain inOrder
-          (
+        messages.reverse should contain theSameElementsInOrderAs
+          Seq(
             WhatIsYourName,
             WelcomeToGame(name),
             PleaseGuess(name),
             YouGuessedWrong(name, 2),
             DoYouWantToContinue(name)
-        )
+          )
+    }
+  }
+
+  it should "retry when player does not enter y/n" in {
+    val name     = "Michel"
+    val testData = TestData(inputs = List(name, "1", "a", "N"), numbers = List(1))
+    val result   = mainTestIO.eval(testData)
+    result match {
+      case TestData(Nil, Nil, messages) =>
+        messages.reverse should contain theSameElementsInOrderAs
+          Seq(
+            WhatIsYourName,
+            WelcomeToGame(name),
+            PleaseGuess(name),
+            YouGuessedWrong(name, 2),
+            DoYouWantToContinue(name),
+            ThatIsNotValid(name)
+          )
     }
   }
 

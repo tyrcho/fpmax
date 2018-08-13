@@ -52,10 +52,12 @@ object MyApp {
     }
   }
 
-  private def inputBoolean[F[_]: Program: Provider: MessageConsumer](name: String): F[Boolean] =
+  private def inputBoolean[F[_]: Program: Provider: MessageConsumer](name: String,
+                                                                     failed: Boolean = false): F[Boolean] =
     for {
+      _         <- if (failed) printMessage(ThatIsNotValid(name)) else point()
       maybeBool <- inputBooleanOpt
-      bool      <- maybeBool.fold(inputBoolean[F](name))(point(_))
+      bool      <- maybeBool.fold(inputBoolean[F](name, failed = true))(point(_))
     } yield bool
 
   private def inputBooleanOpt[F[_]: Program: Provider]: F[Option[Boolean]] =

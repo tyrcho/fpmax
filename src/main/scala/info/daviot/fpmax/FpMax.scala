@@ -7,7 +7,7 @@ import info.daviot.fpmax.StdLib._
 object FpMax extends App {
   implicit val randomIO: Random[IO] = max => IO(() => util.Random.nextInt(max))
 
-  implicit val consumeIO: MessageConsumer[IO] = s => IO(() => printMessage(s))
+  implicit val consumeIO: MessageConsumer[IO] = s => IO(() => println(s.en))
 
   implicit val provideIO: Provider[IO] = new Provider[IO] {
     override def provide: IO[String] = IO(() => readLine())
@@ -54,7 +54,6 @@ object MyApp {
 
   private def inputBoolean[F[_]: Program: Provider: MessageConsumer](name: String): F[Boolean] =
     for {
-      _         <- printMessage(ThatIsNotValid(name))
       maybeBool <- inputBooleanOpt
       bool      <- maybeBool.fold(inputBoolean[F](name))(point(_))
     } yield bool

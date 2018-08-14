@@ -1,25 +1,26 @@
 package info.daviot.fpmax
 
+import cats.effect.IO
 import info.daviot.fpmax.OutMessage._
+import info.daviot.fpmax.StdLib._
 
 import scala.util.Try
-import info.daviot.fpmax.StdLib._
 object FpMax extends App {
-  implicit val randomIO: Random[IO] = max => IO(() => util.Random.nextInt(max))
+  implicit val randomIO: Random[IO] = max => IO(util.Random.nextInt(max))
 
   implicit val consumeIO: MessageConsumer[IO] = s => IO(() => println(s.en))
 
   implicit val provideIO: Provider[IO] = new Provider[IO] {
-    override def provide: IO[String] = IO(() => readLine())
+    override def provide: IO[String] = IO(readLine())
   }
 
   implicit val programIO: Program[IO] = new Program[IO] {
-    override def finish[A](a: => A): IO[A]                    = IO.point(a)
+    override def finish[A](a: => A): IO[A]                    = IO.pure(a)
     override def chain[A, B](fa: IO[A], f: A => IO[B]): IO[B] = fa.flatMap(f)
     override def map[A, B](fa: IO[A], f: A => B): IO[B]       = fa.map(f)
   }
 
-  MyApp.main.unsafeRun()
+  MyApp.main.unsafeRunSync()
 }
 
 object MyApp {

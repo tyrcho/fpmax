@@ -1,7 +1,8 @@
 package info.daviot.fpmax
 
+import cats.Monad
 import info.daviot.fpmax.OutMessage._
-import info.daviot.fpmax.StdLib.{Program, Provider, Random, StringConsumer}
+import info.daviot.fpmax.StdLib.{Provider, Random}
 import org.scalatest._
 
 class FpMaxTests extends FlatSpec with Matchers {
@@ -13,10 +14,10 @@ class FpMaxTests extends FlatSpec with Matchers {
     override def provide: TestIO[String] = TestIO(_.takeInput)
   }
 
-  implicit val programTestIO: Program[TestIO] = new Program[TestIO] {
-    override def finish[A](a: => A): TestIO[A]                            = TestIO.point(a)
-    override def chain[A, B](fa: TestIO[A], f: A => TestIO[B]): TestIO[B] = fa.flatMap(f)
-    override def map[A, B](fa: TestIO[A], f: A => B): TestIO[B]           = fa.map(f)
+  implicit val program: Monad[TestIO] = new Monad[TestIO] {
+    override def pure[A](a: A): TestIO[A]                                      = TestIO.point(a)
+    override def flatMap[A, B](fa: TestIO[A])(f: A => TestIO[B]): TestIO[B]    = fa.flatMap(f)
+    override def tailRecM[A, B](a: A)(f: A => TestIO[Either[A, B]]): TestIO[B] = ???
   }
 
   val mainTestIO: TestIO[Unit] = MyApp.main[TestIO]

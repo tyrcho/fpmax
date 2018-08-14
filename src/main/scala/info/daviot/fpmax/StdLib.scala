@@ -1,22 +1,13 @@
 package info.daviot.fpmax
+import cats.Monad
 
 object StdLib {
 
-
-  //a Monad
-  trait Program[F[_]] {
-    def finish[A](a: => A): F[A]
-    def chain[A, B](fa: F[A], f: A => F[B]): F[B]
-    def map[A, B](fa: F[A], f: A => B): F[B]
-  }
-  object Program {
-    def apply[F[_]](implicit p: Program[F]): Program[F] = p
-  }
   implicit class ProgramSyntax[F[_], A](fa: F[A]) {
-    def map[B](f: A => B)(implicit p: Program[F]): F[B]        = p.map(fa, f)
-    def flatMap[B](f: A => F[B])(implicit p: Program[F]): F[B] = p.chain(fa, f)
+    def map[B](f: A => B)(implicit p: Monad[F]): F[B]        = p.map(fa)(f)
+    def flatMap[B](f: A => F[B])(implicit p: Monad[F]): F[B] = p.flatMap(fa)(f)
   }
-  def point[F[_], A](a: => A)(implicit p: Program[F]): F[A] = p.finish(a)
+  def point[F[_], A](a: => A)(implicit p: Monad[F]): F[A] = p.pure(a)
 
   trait Consumer[F[_], T] {
     def consume(s: T): F[Unit]

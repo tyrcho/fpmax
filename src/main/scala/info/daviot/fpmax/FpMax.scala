@@ -1,5 +1,6 @@
 package info.daviot.fpmax
 
+import cats.Monad
 import cats.effect.IO
 import info.daviot.fpmax.OutMessage._
 import info.daviot.fpmax.StdLib._
@@ -14,10 +15,10 @@ object FpMax extends App {
     override def provide: IO[String] = IO(readLine())
   }
 
-  implicit val programIO: Program[IO] = new Program[IO] {
-    override def finish[A](a: => A): IO[A]                    = IO.pure(a)
-    override def chain[A, B](fa: IO[A], f: A => IO[B]): IO[B] = fa.flatMap(f)
-    override def map[A, B](fa: IO[A], f: A => B): IO[B]       = fa.map(f)
+  implicit val program: Monad[IO] = new Monad[IO] {
+    override def pure[A](a: A): IO[A]                                  = IO.pure(a)
+    override def flatMap[A, B](fa: IO[A])(f: A => IO[B]): IO[B]        = fa.flatMap(f)
+    override def tailRecM[A, B](a: A)(f: A => IO[Either[A, B]]): IO[B] = ???
   }
 
   MyApp.main.unsafeRunSync()
@@ -25,7 +26,7 @@ object FpMax extends App {
 
 object MyApp {
 
-  def main[F[_]: Program: Random: Provider: MessageConsumer]: F[Unit] =
+  def main[F[_]: Monad: Random: Provider: MessageConsumer]: F[Unit] =
     for {
       _    <- printMessage(WhatIsYourName)
       name <- readString
@@ -33,7 +34,7 @@ object MyApp {
       _    <- gameLoop(name)
     } yield ()
 
-  private def gameLoop[F[_]: Program: Random: Provider: MessageConsumer](name: String): F[Unit] =
+  private def gameLoop[F[_]: Monad: Random: Provider: MessageConsumer](name: String): F[Unit] =
     for {
       randomNumber <- nextInt(max = 5)
       hiddenNumber = randomNumber + 1
@@ -53,15 +54,14 @@ object MyApp {
     }
   }
 
-  private def inputBoolean[F[_]: Program: Provider: MessageConsumer](name: String,
-                                                                     failed: Boolean = false): F[Boolean] =
+  private def inputBoolean[F[_]: Monad: Provider: MessageConsumer](name: String, failed: Boolean = false): F[Boolean] =
     for {
       _         <- if (failed) printMessage(ThatIsNotValid(name)) else point()
       maybeBool <- inputBooleanOpt
       bool      <- maybeBool.fold(inputBoolean[F](name, failed = true))(point(_))
     } yield bool
 
-  private def inputBooleanOpt[F[_]: Program: Provider]: F[Option[Boolean]] =
+  private def inputBooleanOpt[F[_]: Monad: Provider]: F[Option[Boolean]] =
     readString.map(parseBoolean)
 
   private def parseBoolean(s: String): Option[Boolean] = s.toLowerCase match {
@@ -70,6 +70,6 @@ object MyApp {
     case _   => None
   }
 
-  private def inputNumber[F[_]: Program: Provider]: F[Option[Int]] =
+  private def inputNumber[F[_]: Monad: Provider]: F[Option[Int]] =
     readString.map(s => Try(s.toInt).toOption)
 }

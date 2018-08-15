@@ -1,31 +1,32 @@
 package info.daviot.fpmax
 
 import cats.Monad
+import cats.data.State
 import info.daviot.fpmax.OutMessage._
 import info.daviot.fpmax.StdLib.{Provider, Random}
 import org.scalatest._
 
 class FpMaxTests extends FlatSpec with Matchers {
-  implicit val randomTestIO: Random[TestIO] = _ => TestIO(_.takeNumber)
+  implicit val randomTestIO: Random[TestState] = _ => State(_.takeNumber)
 
-  implicit val consumerTestIO: MessageConsumer[TestIO] = s => TestIO(t => (t.appendOutput(s), ()))
+  implicit val consumerTestIO: MessageConsumer[TestState] = s => State(t => (t.appendOutput(s), ()))
 
-  implicit val providerTestIO: Provider[TestIO] = new Provider[TestIO] {
-    override def provide: TestIO[String] = TestIO(_.takeInput)
+  implicit val providerTestIO: Provider[TestState] = new Provider[TestState] {
+    override def provide: TestState[String] = State(_.takeInput)
   }
 
-  implicit val program: Monad[TestIO] = new Monad[TestIO] {
-    override def pure[A](a: A): TestIO[A]                                      = TestIO.point(a)
-    override def flatMap[A, B](fa: TestIO[A])(f: A => TestIO[B]): TestIO[B]    = fa.flatMap(f)
-    override def tailRecM[A, B](a: A)(f: A => TestIO[Either[A, B]]): TestIO[B] = ???
+  implicit val program: Monad[TestState] = new Monad[TestState] {
+    override def pure[A](a: A): TestState[A]                                         = State.pure(a)
+    override def flatMap[A, B](fa: TestState[A])(f: A => TestState[B]): TestState[B] = fa.flatMap(f)
+    override def tailRecM[A, B](a: A)(f: A => TestState[Either[A, B]]): TestState[B] = ???
   }
 
-  val mainTestIO: TestIO[Unit] = MyApp.main[TestIO]
+  val mainTestIO: TestState[Unit] = MyApp.main[TestState]
 
   it should "answer when guessed wrong" in {
-    val name     = "Michel"
-    val testData = TestData(inputs = List(name, "1", "N"), numbers = List(1))
-    val result   = mainTestIO.eval(testData)
+    val name        = "Michel"
+    val testData    = TestData(inputs = List(name, "1", "N"), numbers = List(1))
+    val (result, _) = mainTestIO.run(testData).value
     result match {
       case TestData(Nil, Nil, messages) =>
         messages.reverse should contain theSameElementsInOrderAs
@@ -40,9 +41,9 @@ class FpMaxTests extends FlatSpec with Matchers {
   }
 
   it should "retry when player does not enter y/n" in {
-    val name     = "Michel"
-    val testData = TestData(inputs = List(name, "1", "a", "N"), numbers = List(1))
-    val result   = mainTestIO.eval(testData)
+    val name        = "Michel"
+    val testData    = TestData(inputs = List(name, "1", "a", "N"), numbers = List(1))
+    val (result, _) = mainTestIO.run(testData).value
     result match {
       case TestData(Nil, Nil, messages) =>
         messages.reverse should contain theSameElementsInOrderAs
@@ -57,6 +58,7 @@ class FpMaxTests extends FlatSpec with Matchers {
     }
   }
 
+  type TestState[A] = State[TestData, A]
 }
 
 case class TestData(inputs: List[String], numbers: List[Int], outputs: List[OutMessage] = Nil) {
@@ -65,19 +67,4 @@ case class TestData(inputs: List[String], numbers: List[Int], outputs: List[OutM
   def takeInput: (TestData, String) = (copy(inputs = inputs.tail), inputs.head)
 
   def takeNumber: (TestData, Int) = (copy(numbers = numbers.tail), numbers.head)
-}
-
-//State Monad with state parameter fixed as TestData
-case class TestIO[A](run: TestData => (TestData, A)) { self =>
-  def map[B](f: A => B): TestIO[B] =
-    TestIO(data => self.run(data) match { case (t, a) => (t, f(a)) })
-
-  def flatMap[B](f: A => TestIO[B]): TestIO[B] =
-    TestIO(data => self.run(data) match { case (t, a) => f(a).run(t) })
-
-  def eval(t: TestData): TestData = run(t)._1
-}
-
-object TestIO {
-  def point[A](a: => A): TestIO[A] = TestIO(t => (t, a))
 }

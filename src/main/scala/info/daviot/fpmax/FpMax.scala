@@ -1,27 +1,32 @@
 package info.daviot.fpmax
 
 import cats.Monad
-import cats.effect.IO
 import info.daviot.fpmax.OutMessage._
 import info.daviot.fpmax.StdLib._
-
+import monix.eval.Task
+import concurrent.duration.DurationInt
 import scala.util.Try
+
+
 object FpMax extends App {
-  implicit val randomIO: Random[IO] = max => IO(util.Random.nextInt(max))
 
-  implicit val consumeIO: MessageConsumer[IO] = s => IO(() => println(s.en))
+  implicit val randomIO: Random[Task] = max => Task(util.Random.nextInt(max))
 
-  implicit val provideIO: Provider[IO] = new Provider[IO] {
-    override def provide: IO[String] = IO(readLine())
+  implicit val consumeIO: MessageConsumer[Task] = s => Task(() => println(s.en))
+
+  implicit val provideIO: Provider[Task] = new Provider[Task] {
+    override def provide: Task[String] = Task(readLine())
   }
 
-  implicit val program: Monad[IO] = new Monad[IO] {
-    override def pure[A](a: A): IO[A]                                  = IO.pure(a)
-    override def flatMap[A, B](fa: IO[A])(f: A => IO[B]): IO[B]        = fa.flatMap(f)
-    override def tailRecM[A, B](a: A)(f: A => IO[Either[A, B]]): IO[B] = ???
+  implicit val program: Monad[Task] = new Monad[Task] {
+    override def pure[A](a: A): Task[A]                                    = Task.pure(a)
+    override def flatMap[A, B](fa: Task[A])(f: A => Task[B]): Task[B]      = fa.flatMap(f)
+    override def tailRecM[A, B](a: A)(f: A => Task[Either[A, B]]): Task[B] = ???
   }
 
-  MyApp.main.unsafeRunSync()
+  import monix.execution.Scheduler.Implicits.global
+
+  MyApp.main.runSyncUnsafe(1.seconds)
 }
 
 object MyApp {
